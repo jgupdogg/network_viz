@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import cytoscape from 'cytoscape';
-import LayoutSelector from '../LayoutSelector';
+import LayoutSelector from './LayoutSelector';
 import { fetchNetworkData } from '../api/fetchNetworkData';
 
 const NetworkGraph: React.FC = () => {
