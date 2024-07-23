@@ -15,7 +15,7 @@ const NetworkGraph: React.FC = () => {
                 setLoading(true);
                 const data = await fetchNetworkData();
                 console.log("Fetched data:", data);
-                setElements(data);
+                setElements(data.data || []); // Ensure you are accessing the correct property
             } catch (error) {
                 console.error("Failed to fetch network data", error);
                 setError('Failed to fetch network data');
@@ -73,7 +73,7 @@ const NetworkGraph: React.FC = () => {
             <LayoutSelector layout={layout} onLayoutChange={handleLayoutChange} />
             {loading && <p>Loading network data...</p>}
             {error && <p style={{ color: 'red' }}>{error}</p>}
-            <div id="cy" className="w-full h-4/5 border border-gray-300"></div>
+            <div id="cy" className="w-full h-96 border border-gray-300"></div>
         </div>
     );
 };
