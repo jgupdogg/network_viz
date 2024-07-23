@@ -7,9 +7,9 @@ interface LayoutSelectorProps {
 
 const LayoutSelector: React.FC<LayoutSelectorProps> = ({ layout, onLayoutChange }) => {
     return (
-        <div style={{ textAlign: 'center', marginBottom: '10px' }}>
-            <label htmlFor="layout-select">Choose a layout:</label>
-            <select id="layout-select" value={layout} onChange={onLayoutChange}>
+        <div className="w-full flex justify-center p-4 bg-white shadow-md">
+            <label htmlFor="layout-select" className="mr-2">Choose a layout:</label>
+            <select id="layout-select" value={layout} onChange={onLayoutChange} className="p-2 border border-gray-300 rounded">
                 <option value="circle">Circle</option>
                 <option value="grid">Grid</option>
                 <option value="random">Random</option>

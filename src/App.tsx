@@ -2,11 +2,11 @@ import React from 'react';
 import './App.css';
 import NetworkGraph from './components/NetworkGraph';
 
-function App() {
+const App: React.FC = () => {
     return (
-        <div className="App">
-            <header className="App-header">
-                <h1>Network Viz</h1>
+        <div className="flex flex-col items-center min-h-screen bg-gray-100">
+            <header className="w-full bg-blue-600 text-white py-4 text-center">
+                <h1 className="text-3xl">Network Viz</h1>
             </header>
             <NetworkGraph />
         </div>

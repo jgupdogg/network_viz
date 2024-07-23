@@ -1,4 +1,3 @@
-// src/components/NetworkGraph.tsx
 import React, { useEffect, useState } from 'react';
 import cytoscape from 'cytoscape';
 import LayoutSelector from './LayoutSelector';
@@ -7,15 +6,21 @@ import { fetchNetworkData } from '../api/fetchNetworkData';
 const NetworkGraph: React.FC = () => {
     const [elements, setElements] = useState<any[]>([]);
     const [layout, setLayout] = useState('grid');
+    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchData = async () => {
             try {
+                setLoading(true);
                 const data = await fetchNetworkData();
-                console.log("Fetched data:", data); // Log the fetched data here
+                console.log("Fetched data:", data);
                 setElements(data);
             } catch (error) {
                 console.error("Failed to fetch network data", error);
+                setError('Failed to fetch network data');
+            } finally {
+                setLoading(false);
             }
         };
 
@@ -24,7 +29,7 @@ const NetworkGraph: React.FC = () => {
 
     useEffect(() => {
         if (elements.length > 0) {
-            cytoscape({
+            const cy = cytoscape({
                 container: document.getElementById('cy'),
                 elements: elements,
                 style: [
@@ -54,6 +59,8 @@ const NetworkGraph: React.FC = () => {
                 ],
                 layout: { name: layout }
             });
+
+            cy.layout({ name: layout }).run();
         }
     }, [elements, layout]);
 
@@ -62,9 +69,11 @@ const NetworkGraph: React.FC = () => {
     };
 
     return (
-        <div>
+        <div className="w-full flex flex-col items-center">
             <LayoutSelector layout={layout} onLayoutChange={handleLayoutChange} />
-            <div id="cy" style={{ width: '100%', height: '80vh', border: '1px solid #ccc' }}></div>
+            {loading && <p>Loading network data...</p>}
+            {error && <p style={{ color: 'red' }}>{error}</p>}
+            <div id="cy" className="w-full h-4/5 border border-gray-300"></div>
         </div>
     );
 };
