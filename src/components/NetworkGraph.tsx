@@ -1,3 +1,4 @@
+// src/components/NetworkGraph.tsx
 import React, { useEffect, useState } from 'react';
 import cytoscape from 'cytoscape';
 import LayoutSelector from './LayoutSelector';
@@ -11,8 +12,8 @@ const NetworkGraph: React.FC = () => {
         const fetchData = async () => {
             try {
                 const data = await fetchNetworkData();
+                console.log("Fetched data:", data); // Log the fetched data here
                 setElements(data);
-                console.log("Network data fetched successfully:", data);
             } catch (error) {
                 console.error("Failed to fetch network data", error);
             }
