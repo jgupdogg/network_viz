@@ -14,6 +14,8 @@ const LayoutSelector: React.FC<LayoutSelectorProps> = ({ layout, onLayoutChange 
                 <option value="grid">Grid</option>
                 <option value="random">Random</option>
                 <option value="cose">Cose</option>
+                <option value="cose-bilkent">Cose Bilkent</option>
+                <option value="cola">Cola</option>
             </select>
         </div>
     );

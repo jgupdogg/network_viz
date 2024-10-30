@@ -1,0 +1,138 @@
+WITH initial_transfers AS (
+    SELECT 
+        FROM_ADDRESS,
+        TO_ADDRESS
+    FROM 
+        ethereum.core.ez_native_transfers
+    WHERE 
+        LOWER(FROM_ADDRESS) IN (
+            LOWER('0xa15c9d4aF12d42c612D5a7445d76f5cC3aC92A69'),
+            LOWER('0xEd9258097cC80e1E6eBF2c9B132Eb135C81bb4eF'),
+            LOWER('0x3339AAD5f1a0CC95d6Dee6DDF10b444F080c7cB5'),
+            LOWER('0x7716d9e70779ee3d2580DccA818521A85E59eec8'),
+            LOWER('0x6F28ebf3170AA00Bfdf7131A4635a04976c657Ed')
+        ) 
+        OR LOWER(TO_ADDRESS) IN (
+            LOWER('0xa15c9d4aF12d42c612D5a7445d76f5cC3aC92A69'),
+            LOWER('0xEd9258097cC80e1E6eBF2c9B132Eb135C81bb4eF'),
+            LOWER('0x3339AAD5f1a0CC95d6Dee6DDF10b444F080c7cB5'),
+            LOWER('0x7716d9e70779ee3d2580DccA818521A85E59eec8'),
+            LOWER('0x6F28ebf3170AA00Bfdf7131A4635a04976c657Ed')
+        )
+        AND BLOCK_TIMESTAMP >= CURRENT_DATE - INTERVAL '20 days'
+),
+
+unique_addresses AS (
+    SELECT LOWER(FROM_ADDRESS) AS ADDRESS
+    FROM initial_transfers
+    UNION
+    SELECT LOWER(TO_ADDRESS) AS ADDRESS
+    FROM initial_transfers
+),
+
+combined_transfers AS (
+    SELECT 
+        TX_HASH,
+        BLOCK_TIMESTAMP,
+        FROM_ADDRESS,
+        TO_ADDRESS,
+        AMOUNT,
+        AMOUNT_USD,
+        'ETH' AS SYMBOL,
+        'native' AS TRANSFER_TYPE
+    FROM 
+        ethereum.core.ez_native_transfers
+    WHERE 
+        (LOWER(FROM_ADDRESS) IN (SELECT ADDRESS FROM unique_addresses)
+        OR LOWER(TO_ADDRESS) IN (SELECT ADDRESS FROM unique_addresses))
+        AND BLOCK_TIMESTAMP >= CURRENT_DATE - INTERVAL '20 days'
+        AND AMOUNT_USD >= 10000
+
+    UNION ALL
+
+    SELECT 
+        TX_HASH,
+        BLOCK_TIMESTAMP,
+        FROM_ADDRESS,
+        TO_ADDRESS,
+        AMOUNT,
+        AMOUNT_USD,
+        CASE 
+            WHEN SYMBOL IN ('USDT', 'USDC') THEN 'STABLES'
+            ELSE SYMBOL
+        END AS SYMBOL,
+        'token' AS TRANSFER_TYPE
+    FROM 
+        ethereum.core.ez_token_transfers
+    WHERE 
+        (LOWER(FROM_ADDRESS) IN (SELECT ADDRESS FROM unique_addresses)
+        OR LOWER(TO_ADDRESS) IN (SELECT ADDRESS FROM unique_addresses))
+        AND BLOCK_TIMESTAMP >= CURRENT_DATE - INTERVAL '20 days'
+        AND AMOUNT_USD >= 10000
+        AND SYMBOL IN ('ETH', 'USDT', 'USDC')
+),
+
+labeled_transfers AS (
+    SELECT 
+        ct.TX_HASH,
+        ct.BLOCK_TIMESTAMP,
+        ct.FROM_ADDRESS,
+        CASE 
+            WHEN LOWER(ct.FROM_ADDRESS) IN (
+                LOWER('0xa15c9d4aF12d42c612D5a7445d76f5cC3aC92A69'),
+                LOWER('0xEd9258097cC80e1E6eBF2c9B132Eb135C81bb4eF'),
+                LOWER('0x3339AAD5f1a0CC95d6Dee6DDF10b444F080c7cB5'),
+                LOWER('0x7716d9e70779ee3d2580DccA818521A85E59eec8'),
+                LOWER('0x6F28ebf3170AA00Bfdf7131A4635a04976c657Ed')
+            ) THEN 'BITWISE ETF'
+            ELSE COALESCE(from_labels.LABEL, ct.FROM_ADDRESS)
+        END AS FROM_LABEL,
+        from_labels.LABEL_TYPE AS FROM_LABEL_TYPE,
+        ct.TO_ADDRESS,
+        CASE 
+            WHEN LOWER(ct.TO_ADDRESS) IN (
+                LOWER('0xa15c9d4aF12d42c612D5a7445d76f5cC3aC92A69'),
+                LOWER('0xEd9258097cC80e1E6eBF2c9B132Eb135C81bb4eF'),
+                LOWER('0x3339AAD5f1a0CC95d6Dee6DDF10b444F080c7cB5'),
+                LOWER('0x7716d9e70779ee3d2580DccA818521A85E59eec8'),
+                LOWER('0x6F28ebf3170AA00Bfdf7131A4635a04976c657Ed')
+            ) THEN 'BITWISE ETF'
+            ELSE COALESCE(to_labels.LABEL, ct.TO_ADDRESS)
+        END AS TO_LABEL,
+        to_labels.LABEL_TYPE AS TO_LABEL_TYPE,
+        ct.AMOUNT,
+        ct.AMOUNT_USD,
+        ct.SYMBOL,
+        ct.TRANSFER_TYPE
+    FROM 
+        combined_transfers ct
+    LEFT JOIN 
+        ethereum.core.dim_labels from_labels ON LOWER(ct.FROM_ADDRESS) = LOWER(from_labels.ADDRESS)
+    LEFT JOIN 
+        ethereum.core.dim_labels to_labels ON LOWER(ct.TO_ADDRESS) = LOWER(to_labels.ADDRESS)
+)
+
+SELECT 
+    FROM_LABEL,
+    FROM_LABEL_TYPE,
+    TO_LABEL,
+    TO_LABEL_TYPE,
+    SYMBOL,
+    SUM(AMOUNT) AS TOTAL_AMOUNT,
+    SUM(AMOUNT_USD) AS TOTAL_AMOUNT_USD,
+    COUNT(*) AS TRANSACTION_COUNT
+FROM 
+    labeled_transfers
+WHERE NOT (
+    (FROM_LABEL_TYPE IN ('cex', 'dex', 'defi') AND TO_LABEL LIKE '0x%')
+    OR (TO_LABEL_TYPE IN ('cex', 'dex', 'defi') AND FROM_LABEL LIKE '0x%')
+    OR FROM_LABEL = TO_LABEL
+)
+GROUP BY 
+    FROM_LABEL,
+    FROM_LABEL_TYPE,
+    TO_LABEL,
+    TO_LABEL_TYPE,
+    SYMBOL
+ORDER BY 
+    TOTAL_AMOUNT_USD DESC;
