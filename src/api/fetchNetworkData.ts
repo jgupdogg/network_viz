@@ -1,19 +1,13 @@
 // src/api/fetchNetworkData.ts
-const API_URL = 'https://5waa71moa0.execute-api.us-east-2.amazonaws.com/cytoscape_graph';
+const API_URL = 'https://w0jium37l6.execute-api.us-east-1.amazonaws.com/prod/flipside';
 
 export const fetchNetworkData = async () => {
     const maxRetries = 3;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                })
-            });
+            // Simplified fetch request without unnecessary headers
+            const response = await fetch(API_URL);
 
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
